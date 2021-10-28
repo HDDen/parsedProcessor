@@ -167,7 +167,16 @@ function didom_content_downloadAttaches(&$document, $store_in_list_instead = fal
 				if ($download_result) writeLog('didom_content_downloadAttaches(): скачано байт '.$download_result);
 			} else {
 				writeLog('didom_content_downloadAttaches(): активен режим $store_in_list_instead, заносим ссылку в список');
-				$list_file = $download_root . '/to_download.txt';
+
+				// В какой список будем заносить ссылку
+				if ($tagname == 'img'){
+                    $list_file = $download_root . '/to_download_img.txt';
+                } else if ($tagname == 'a'){
+                    $list_file = $download_root . '/to_download_docs.txt';
+                } else {
+                    $list_file = $download_root . '/to_download.txt';
+                }
+
 				file_put_contents($list_file, $href_downloadBy.PHP_EOL, FILE_APPEND | LOCK_EX);
 			}
 
