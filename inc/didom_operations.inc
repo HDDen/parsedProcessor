@@ -153,15 +153,16 @@ function didom_content_downloadAttaches(&$document, $store_in_list_instead = fal
 				continue;
 			}
 
-			// Создадим подпапку
-			$image_full_dir = $attach_type_dir . '/' . ltrim($path_array["dirname"], '/');
-			if(!is_dir($image_full_dir)) {
-				mkdir($image_full_dir, 0777, true);
-			}
-
 			// Скачаем файл
 			// Или можем сохранить его в списке для скачивания - чтобы скачать сторонними многопоточными средствами
 			if (!$store_in_list_instead){
+
+                // Создадим подпапку
+                $image_full_dir = $attach_type_dir . '/' . ltrim($path_array["dirname"], '/');
+                if(!is_dir($image_full_dir)) {
+                    mkdir($image_full_dir, 0777, true);
+                }
+
 				$download_result = file_put_contents($local_path, fopen($href_downloadBy, 'r'));
 				if ($download_result) writeLog('didom_content_downloadAttaches(): скачано байт '.$download_result);
 			} else {
