@@ -63,13 +63,15 @@ function didom_content_downloadAttaches(&$document, $store_in_list_instead = fal
 	}
 
 	// проверим наличие подпапки изображений
-	$download_imgs = WORKDIR_ROOT . '/_downloadedfiles/_imgs';
+    $imgs_prefix_folder = '/_imgs';
+	$download_imgs = WORKDIR_ROOT . '/_downloadedfiles' . $imgs_prefix_folder;
 	if(!is_dir($download_imgs)) {
 		mkdir($download_imgs, 0777, true);
 	}
 
 	// проверим наличие подпапки документов
-	$download_docs = WORKDIR_ROOT . '/_downloadedfiles/_docs';
+    $docs_prefix_folder = '/_docs';
+	$download_docs = WORKDIR_ROOT . '/_downloadedfiles' . $docs_prefix_folder;
 	if(!is_dir($download_docs)) {
 		mkdir($download_docs, 0777, true);
 	}
@@ -89,9 +91,11 @@ function didom_content_downloadAttaches(&$document, $store_in_list_instead = fal
 			$tagname = $attach->tag;
 			if ($tagname == 'img'){
 				$href_attr = 'src';
+				$add_prefix_folder = $imgs_prefix_folder;
 				$attach_type_dir = $download_imgs;
 			} else if ($tagname == 'a'){
 				$href_attr = 'href';
+                $add_prefix_folder = $docs_prefix_folder;
 				$attach_type_dir = $download_docs;
 			}
 
@@ -165,12 +169,16 @@ function didom_content_downloadAttaches(&$document, $store_in_list_instead = fal
 				$list_file = $download_root . '/to_download.txt';
 				file_put_contents($list_file, $href_downloadBy.PHP_EOL, FILE_APPEND | LOCK_EX);
 			}
+
+			// Заменим href у элемента
+            if (@$path_array['is_internal'] && @$path_array['path']){
+                $updated_href = $add_prefix_folder . '/' . ltrim($path_array['path'], '/');
+                $attach->setAttribute($href_attr, $updated_href);
+            }
+
 		}
 	}
 	unset($imgs);
-
-	// Теперь качаем документы по a[href]
-
 }
 
 
