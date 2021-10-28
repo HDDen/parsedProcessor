@@ -1,0 +1,11 @@
+{
+    "name": "hdden/parsed-processor",
+    "require": {
+        "imangazaliev/didom": "^1.18"
+    },
+    "autoload": {
+        "psr-4": {
+            "Hdden\\ParsedProcessor\\": "src/"
+        }
+    }
+}
