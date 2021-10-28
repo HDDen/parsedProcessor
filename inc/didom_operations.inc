@@ -174,6 +174,7 @@ function didom_content_downloadAttaches(&$document, $store_in_list_instead = fal
             if (@$path_array['is_internal'] && @$path_array['path']){
                 $updated_href = $add_prefix_folder . '/' . ltrim($path_array['path'], '/');
                 $attach->setAttribute($href_attr, $updated_href);
+                writeLog('didom_content_downloadAttaches(): заменили $href, ' . $updated_href);
             }
 
 		}
