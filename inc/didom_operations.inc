@@ -209,7 +209,7 @@ function didom_content_deleteEmptyElements(&$document){
             $innerText = trim($elem->text(), ' ');
 
             // Если текст отсутствует, можно удалить элемент
-            if ($innerText === ''){
+            if ( ($innerText === '') || ($innerText === ' ') ){
                 $elem->remove();
                 writeLog('didom_content_deleteEmptyElements(): удалён элемент');
             }
