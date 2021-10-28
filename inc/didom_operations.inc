@@ -21,6 +21,8 @@ function didom_process_content(&$data){
 	didom_content_deleteH1($document);
 	// Выкачиваем аттачи
 	didom_content_downloadAttaches($document, true);
+	// Чистим пустые <p>
+    didom_content_deleteEmptyElements($document);
 
 	// Возврат результата
 	$html = didom_innerHTML_helper($document);
@@ -190,6 +192,29 @@ function didom_content_downloadAttaches(&$document, $store_in_list_instead = fal
 		}
 	}
 	unset($imgs);
+}
+
+/**
+ * @param $document
+ *
+ * Удаление пустых элементов (<p>)
+ */
+function didom_content_deleteEmptyElements(&$document){
+    $elems = $document->find('p');
+
+    if (count($elems)){
+        foreach ($elems as $elem){
+
+            // Получаем текст и убираем пробелы
+            $innerText = trim($elem->text(), ' ');
+
+            // Если текст отсутствует, можно удалить элемент
+            if ($innerText === ''){
+                $elem->remove();
+                writeLog('didom_content_deleteEmptyElements(): удалён элемент');
+            }
+        }
+    }
 }
 
 
