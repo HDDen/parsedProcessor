@@ -1,0 +1,37 @@
+<?php
+	include_once('./classes/classDataCache.php');
+	include_once('./classes/classSiteSettings.php');
+
+	# засикаем время начала работы скрипта
+	$start = microtime(true);
+	
+	// Создаём объект для кэширования данных с УНИКАЛЬНЫМ для этих данных ID - array1000md5i
+	$dataCache = new DataCache('array1000hashsha512');
+	# $dataCache->setCacheOff(); - отключение кэширования, если надо
+	# $dataCache->setCacheTime(1000); - установка времени кэширования, секунд, если надо
+	// Запрашиваем инициализацию кэша
+	$getDataFromCache = $dataCache->initCacheData();
+	if ($getDataFromCache) {
+		// Получаем кэшированные данные из кэша
+		$data = $dataCache->getCacheData();
+	} else {
+		// Исполняем этот код, если кеширование отключено или данные в кеше старые
+		
+		// Создание каких-то данных или какая-то ресурсоёмкая задача
+		$data = Array();
+		$str = '';
+		for ($i = 0; $i < 10000; $i++) {
+			$str .= $i;
+			$data[] = hash('sha512', $str);
+		}
+		
+		// Обновляем данные в кэше
+		$dataCache->updateCacheData($data);
+	}
+	
+	var_dump($data);
+	
+	echo "<br>\n";
+	echo 'Время выполнения скрипта: '.round(microtime(true) - $start, 4).' сек.';
+	
+?>

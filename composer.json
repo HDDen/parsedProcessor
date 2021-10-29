@@ -1,7 +1,8 @@
 {
     "name": "hdden/parsed-processor",
     "require": {
-        "imangazaliev/didom": "^1.18"
+        "imangazaliev/didom": "^1.18",
+        "phpoffice/phpspreadsheet": "^1.18"
     },
     "autoload": {
         "psr-4": {

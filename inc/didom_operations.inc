@@ -8,11 +8,18 @@ use function logger\writeLog;
  * Операции над контентом
  ***********************************************************************************************/
 /**
- * @param $data
- *
  * Выполняем действия над контентом
+ *
+ * @param $data
  */
 function didom_process_content(&$data){
+	// Проверка на пустоту
+	if ( preg_match("/^(\s)*$/mu", $data) || !$data ){
+		writeLog('didom_process_content(): получена пустая $data - "'.$data.'"');
+		return $data;
+	}
+
+	// Строим документ
 	$document = new Document($data);
 
 	// Операции
@@ -23,6 +30,8 @@ function didom_process_content(&$data){
 	didom_content_downloadAttaches($document, true);
 	// Чистим пустые <p>
     didom_content_deleteEmptyElements($document);
+    // Удалим дату из самой статьи
+	didom_content_deleteDate($document);
 
 	// Возврат результата
 	$html = didom_innerHTML_helper($document);
@@ -35,10 +44,10 @@ function didom_process_content(&$data){
 }
 
 /**
+ * Удалит H1 из контентной части
+ *
  * @param $document
  * @return mixed
- *
- * Удалит H1 из контентной части
  */
 function didom_content_deleteH1(&$document){
 	$h1 = $document->find('h1');
@@ -51,9 +60,9 @@ function didom_content_deleteH1(&$document){
 }
 
 /**
- * @param $document
- *
  * Обработка и скачивание всех img и пришпиленных документов
+ *
+ * @param $document
  */
 function didom_content_downloadAttaches(&$document, $store_in_list_instead = false){
 	// Нужно сначала выкачать все картинки, затем пройти href всех ссылок
@@ -195,9 +204,9 @@ function didom_content_downloadAttaches(&$document, $store_in_list_instead = fal
 }
 
 /**
- * @param $document
- *
  * Удаление пустых элементов (<p>)
+ *
+ * @param $document
  */
 function didom_content_deleteEmptyElements(&$document){
     $elems = $document->find('p');
@@ -217,6 +226,116 @@ function didom_content_deleteEmptyElements(&$document){
     }
 }
 
+/**
+ * Удаляет дату из html статьи
+ *
+ * @param $document
+ */
+function didom_content_deleteDate(&$document){
+	$elems = $document->find('.newsdate');
+
+	if (count($elems)){
+		foreach ($elems as $elem){
+			$elem->remove();
+		}
+	}
+}
+
+
+/************************************************************************************************
+ * Хлебные крошки
+ ***********************************************************************************************/
+/**
+ * Обходит html хлебных крошек, строит из них текст вида "Раздел > Раздел 2 > Раздел n"
+ *
+ * @param $data
+ * @return string
+ * @throws \DiDom\Exceptions\InvalidSelectorException
+ */
+function didom_process_breadcrumbs(&$data){
+	// Проверка на пустоту
+	if ( preg_match("/^(\s)*$/mu", $data) || !$data ){
+		writeLog('didom_process_breadcrumbs(): получена пустая $data - "'.$data.'"');
+		return $data;
+	}
+
+	// Строим документ
+	$document = new Document($data);
+
+	// В полученном html все элементы пути - <A>. Самоссылки нет, т.е. просто обрабатываем все ссылки
+
+	$sections_array = array(); // сюда будем заносить текстовые значения каждой ссылки
+
+	$elements = $document->find('a');
+	if (count($elements)){
+		foreach ($elements as $elem){
+			$innerText = $elem->text();
+
+			// Если внутренний текст пустой, ничего не делаем
+			if ( preg_match("/^(\s)*$/mu", $innerText) ){
+				continue;
+			}
+
+			// Заносим в массив
+			$sections_array[] = $innerText;
+		}
+	}
+	unset($elements);
+	unset($document);
+
+	// Схлопываем массив с нашим разделителем
+	$result = implode(' > ', $sections_array);
+
+	// Возврат результата
+	return $result;
+}
+
+/************************************************************************************************
+ * Дата публикации
+ ***********************************************************************************************/
+/**
+ * Обработка html даты, приведение к простому текстовому виду
+ *
+ * @param $data
+ * @return mixed
+ */
+function didom_process_date(&$data){
+	// Проверка на пустоту
+	if ( preg_match("/^(\s)*$/mu", $data) || !$data ){
+		writeLog('didom_process_date(): получена пустая $data - "'.$data.'"');
+		return $data;
+	}
+
+	// Строим документ
+	$document = new Document($data);
+
+	// Дата прячется в <td>
+	$date_array = array(); // сюда будем заносить текстовые значения каждого элемента даты
+
+	$elements = $document->find('td');
+	if (count($elements)){
+		foreach ($elements as $elem){
+			$innerText = $elem->text();
+
+			// Если внутренний текст пустой, ничего не делаем
+			if ( preg_match("/^(\s)*$/mu", $innerText) ){
+				continue;
+			}
+
+			// Заносим в массив
+			$date_array[] = $innerText;
+		}
+	}
+	unset($elements);
+	unset($document);
+
+	// Схлопываем массив с нашим разделителем
+	$result = implode('.', $date_array);
+
+	// Возврат результата
+	return $result;
+}
+
 
 
 
@@ -226,11 +345,11 @@ function didom_content_deleteEmptyElements(&$document){
  ***********************************************************************************************/
 
 /**
+ * Парсит url и получает доп. инфу по нему (путь к файлу, и внутренняя ли ссылка)
+ *
  * @param $url
  * @param $internal_domain
  * @return array|false|int|string|null
- *
- * Парсит url и получает доп. инфу по нему (путь к файлу, и внутренняя ли ссылка)
  */
 function parse_url_custom($url, $internal_domain){
 	$result = parse_url($url);
@@ -260,9 +379,9 @@ function parse_url_custom($url, $internal_domain){
 	return $result;
 }
 /**
- * @param $document
- *
  * Пытаемся получить внутренний html от body
+ *
+ * @param $document
  */
 function didom_innerHTML_helper(&$document){
 	$body = $document->first('body');
@@ -277,12 +396,19 @@ function didom_innerHTML_helper(&$document){
 }
 
 /**
+ * Пример функции
+ *
  * @param $data
  * @return mixed
- *
- * Пример функции
  */
 function didom_process_DUMMY(&$data){
+	// Проверка на пустоту
+	if ( preg_match("/^(\s)*$/mu", $data) || !$data ){
+		writeLog('didom_process_DUMMY(): получена пустая $data - "'.$data.'"');
+		return $data;
+	}
+
+	// Строим документ
 	$document = new Document($data);
 
 	// Операции
