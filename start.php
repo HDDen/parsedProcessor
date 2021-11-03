@@ -39,6 +39,25 @@ echo 'Время выполнения: '.$parserScriptTime;
 writeLog(PHP_EOL.'Время выполнения: '.$parserScriptTime);
 
 function start(){
+	///////////////////////////////////////////////////////////////////////
+	// Настройки
+	///////////////////////////////////////////////////////////////////////
+	$useInputCSV = false; // Получать из CSV или из xls. От этого зависит, какой обработчик будем использовать
+	$useOutputCSV = false; // выводить как CSV
+	$outputPhpSpreadSheet = true; // чем писать CSV
+
+	// Имя исходного CSV
+	$src = '_in/demo_03-11-2021.xlsx';
+	// Имя итогового CSV
+	$dest = '_out/result_demo_03-11-2021.xlsx';
+
+	// Пропуск первых столбцов
+	$skip_first_n = 1; // количество, а не индекс!
+	// Пропуск остальных столбцов. $skip_after = 10;
+	$skip_after = 10;
+	///////////////////////////////////////////////////////////////////////
+
+
 	// переключатель режима дебага
 	$debug = false;
 	if (defined(DEBUGCSV) && (DEBUGCSV === 'true')) $debug = true;
@@ -46,15 +65,6 @@ function start(){
 
 	// Зафиксируем старт
 	if ($debug) writeLog(PHP_EOL.PHP_EOL.'Старт задачи');
-
-	$useInputCSV = false; // Получать из CSV или из xls. От этого зависит, какой обработчик будем использовать
-	$useOutputCSV = false; // выводить как CSV
-	$outputPhpSpreadSheet = true; // чем писать CSV
-
-	// Имя исходного CSV
-	$src = '_in/demo-29-10-2021.xlsx';
-	// Имя итогового CSV
-	$dest = '_out/result_demo-29-10-2021.xlsx.csv';
 
 	writeLog('Входной файл: "'.$src.'"');
 
@@ -89,7 +99,7 @@ function start(){
 		}
 
 		// Процессинг полученных данных выведем в отдельную функцию
-		$processed = processParsedData($data); // false / обработанный массив для обратного преобразования
+		$processed = processParsedData($data, $skip_first_n, $skip_after); // false / обработанный массив для обратного преобразования
 
 		// Запишем в кэш
 		$dataCache_processed->updateCacheData($processed);
@@ -140,7 +150,7 @@ function start(){
 	if ($debug) writeLog('Конец задачи');
 }
 
-function processParsedData(&$data){
+function processParsedData(&$data, $skip_first_n, $skip_after){
 	// переключатель режима дебага
 	$debug = false;
 	if (defined(DEBUGCSV) && (DEBUGCSV === 'true')) $debug = true;
@@ -168,6 +178,23 @@ function processParsedData(&$data){
 	// Перебор элементов.
 	foreach ($data as $row_index => $row){ // каждую строку
 		if ($debug) writeLog('processParsedData(): Строка №'.$row_index);
+
+		// Пропускаем заголовки. В переменной число, это количество, а не индекс
+		if ($skip_first_n){
+			if ($row_index < $skip_first_n){
+				writeLog('processParsedData(): пропускаем начальную строку');
+				continue;
+			}
+		}
+
+		// Пропуск остатков - если делаем лимит на обработку только первых N
+		if ($skip_after){
+			if ($row_index >= ($skip_first_n + $skip_after) ){
+				writeLog('processParsedData(): пропускаем из-за лимита в '.$skip_after." эл-ов");
+				continue;
+			}
+		}
+
 		foreach ($row as $column_index => $column_data){ // а теперь каждый столбец
 			// а теперь сравнение.
 			// если в массиве $col_operations есть операции для этого индекса, выполняем их по-очереди
