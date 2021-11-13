@@ -1,4 +1,5 @@
 <?php
+
 use DiDom\Document;
 use DiDom\Query;
 use DiDom\Element;
@@ -11,6 +12,7 @@ use function logger\writeLog;
  * Выполняем действия над контентом
  *
  * @param $data
+ * @return mixed|string
  */
 function didom_process_content(&$data){
 	// Проверка на пустоту
@@ -63,6 +65,7 @@ function didom_content_deleteH1(&$document){
  * Обработка и скачивание всех img и пришпиленных документов
  *
  * @param $document
+ * @param bool $store_in_list_instead
  */
 function didom_content_downloadAttaches(&$document, $store_in_list_instead = false){
 	// Нужно сначала выкачать все картинки, затем пройти href всех ссылок
@@ -241,6 +244,82 @@ function didom_content_deleteDate(&$document){
 	}
 }
 
+/**
+ * Парсит столбец контента и определяет, в рубрике ли мы новостей. Если да, то собирает картинку и текст анонса
+ *
+ * @param $data
+ * @return mixed
+ * @throws \DiDom\Exceptions\InvalidSelectorException
+ */
+function didom_collect_announces(&$data){
+    // Проверка на пустоту
+    if ( preg_match("/^(\s)*$/mu", $data) || !$data ){
+        writeLog('didom_collect_announces(): получена пустая $data - "'.$data.'"');
+        return $data;
+    }
+
+    // Строим документ
+    $document = new Document($data);
+
+    // Операции
+    // Проверим наличие .newsitem
+    $news = $document->find('.newsitem');
+    if (count($news) < 1) return $data; // Выход, если нет
+
+    // Проверяем/создаём глобальную перменную для хранения анонсов
+    if (!isset($_SESSION['didom_announces'])){
+        $_SESSION['didom_announces'] = array();
+    }
+
+    // Перебор анонсов
+    foreach ($news as $index => $element){
+        $temporary = array( 'url'=>'', 'img'=>'', 'descr'=>'' ); // сюда сложим элементы
+
+        // ищем картинку, анонс, а затем ссылку
+        $image = $element->first('td > img');
+        if ($image) $temporary['img'] = $image->getAttribute('src');
+        // картинку нужно занести в список для скачивания
+        if ($temporary['img']){
+            $list_file = WORKDIR_ROOT . '/_downloadedfiles/to_download_announces.txt';
+            $img_href_array = parse_url_custom($temporary['img'], 'kavraion.ru');
+            $href_downloadBy = 'http://www.kavraion.ru/'.ltrim($img_href_array['path'], '/');
+            file_put_contents($list_file, $href_downloadBy.PHP_EOL, FILE_APPEND | LOCK_EX);
+            // Теперь модифицировать путь к ней - сделать относительный от корня, с нашей подпапкой
+            $img_path_info = parse_url_custom($temporary['img'], 'kavraion.ru');
+            if ($img_path_info['is_internal']){
+                $temporary['img'] = '/_imgs/'.ltrim($temporary['img'], '/');
+            }
+        }
+
+        // Анонс новости
+        $descr = $element->first('.newsdescription');
+        if ($descr) $temporary['descr'] = trim($descr->text());
+
+        if (!$temporary['img'] && !$temporary['descr']) continue; // если ни описания, ни картинки, пропускаем
+
+        // зафиксируем ссылку на новость - будет id
+        $url = $element->first('.newsheader a');
+        if (!$url) {
+            writeLog('didom_collect_announces(): не удаётся найти url новости!');
+            continue;
+        }
+        $url = $url->getAttribute('href');
+
+        // получим расширенные данные об url
+        $url_data = parse_url_custom($url, 'kavraion.ru');
+        // сгенерируем полный url, или воспользуемся изначальным
+        $url = 'http://www.kavraion.ru' . '/' . ltrim($url_data['path'], '/');
+        $temporary['url'] = $url;
+        writeLog('didom_collect_announces(): строим полный путь на новость сами, $url = '.$url);
+
+        // теперь занести всё в глобальную переменную
+        $_SESSION['didom_announces'][] = $temporary;
+    }
+
+    // Возврат исходника, т.к. мы его не модифицируем
+    return $data;
+}
+
 
 /************************************************************************************************
  * Хлебные крошки
@@ -298,6 +377,7 @@ function didom_process_breadcrumbs(&$data){
  *
  * @param $data
  * @return mixed
+ * @throws \DiDom\Exceptions\InvalidSelectorException
  */
 function didom_process_date(&$data){
 	// Проверка на пустоту
@@ -378,10 +458,12 @@ function parse_url_custom($url, $internal_domain){
 
 	return $result;
 }
+
 /**
  * Пытаемся получить внутренний html от body
  *
  * @param $document
+ * @return mixed
  */
 function didom_innerHTML_helper(&$document){
 	$body = $document->first('body');
