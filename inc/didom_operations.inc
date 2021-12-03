@@ -90,6 +90,13 @@ function didom_content_downloadAttaches(&$document, $store_in_list_instead = fal
 		mkdir($download_docs, 0777, true);
 	}
 
+	// проверим наличие подпапки видео
+	$video_prefix_folder = '/_video';
+	$download_video = WORKDIR_ROOT . '/_downloadedfiles' . $video_prefix_folder;
+	if(!is_dir($download_video)) {
+		mkdir($download_video, 0777, true);
+	}
+
 	// Фильтр расширений
 	$attach_extensions_filter = array('html', 'htm');
 
@@ -98,7 +105,7 @@ function didom_content_downloadAttaches(&$document, $store_in_list_instead = fal
 	$short_domain = 'kavraion.ru';
 
 	// Поиск изображений и документов в странице
-	$attachments = $document->find('img[src], a[href*="."]');
+	$attachments = $document->find('img[src], a[href*="."], video[src], source[src]');
 	if (count($attachments)){
 		foreach ($attachments as $attach){
 			// поймём, что за элемент
@@ -107,6 +114,10 @@ function didom_content_downloadAttaches(&$document, $store_in_list_instead = fal
 				$href_attr = 'src';
 				$add_prefix_folder = $imgs_prefix_folder;
 				$attach_type_dir = $download_imgs;
+			} else if ( ($tagname == 'video') || ($tagname == 'source') ){
+				$href_attr = 'src';
+				$add_prefix_folder = $video_prefix_folder;
+				$attach_type_dir = $download_video;
 			} else if ($tagname == 'a'){
 				$href_attr = 'href';
                 $add_prefix_folder = $docs_prefix_folder;
@@ -185,6 +196,8 @@ function didom_content_downloadAttaches(&$document, $store_in_list_instead = fal
 				// В какой список будем заносить ссылку
 				if ($tagname == 'img'){
                     $list_file = $download_root . '/to_download_img.txt';
+				} else if ( ($tagname == 'video') || ($tagname == 'source') ){
+					$list_file = $download_root . '/to_download_video.txt';
                 } else if ($tagname == 'a'){
                     $list_file = $download_root . '/to_download_docs.txt';
                 } else {

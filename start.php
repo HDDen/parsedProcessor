@@ -37,14 +37,15 @@ function start(){
 	///////////////////////////////////////////////////////////////////////
 	// Настройки
 	///////////////////////////////////////////////////////////////////////
-	$useInputCSV = false; // Получать из CSV или из xls. От этого зависит, какой обработчик будем использовать
+	$useInputCSV = true; // Получать из CSV или из xls. От этого зависит, какой обработчик будем использовать
+	$readCSVbyKama = false; // Читать CSV через kama или phpspreadsheet
 	$useOutputCSV = false; // выводить как CSV
 	$outputPhpSpreadSheet = true; // чем писать CSV
 
 	// Имя исходного
-	$src = '_in/03-11-2021.xlsx';
+	$src = '_in/03-12-2021_potentially_empty_pages.csv';
 	// Имя итогового CSV
-	$dest = '_out/result_03-11-2021.xlsx';
+	$dest = '_out/result_03-12-2021_potentially_empty_pages.xlsx';
 
 	// Пропуск первых столбцов. Условно, первый столбец - заголовки
 	$skip_first_n = 1; // количество, а не индекс!
@@ -80,7 +81,13 @@ function start(){
     } else {
         if ($useInputCSV){
             // Загрузим CSV
-            $data_array = kama_parse_csv_file($src);
+	        if ($readCSVbyKama){
+		        $data_array = kama_parse_csv_file($src);
+	        } else {
+		        $csvReader = new \PhpOffice\PhpSpreadsheet\Reader\Csv();
+		        $spreadsheet = $csvReader->load($src);
+		        $data_array = $spreadsheet->getSheet(0)->toArray();
+	        }
         } else {
             $xlsReader = new \PhpOffice\PhpSpreadsheet\Reader\Xlsx();
             $spreadsheet = $xlsReader->load($src);
