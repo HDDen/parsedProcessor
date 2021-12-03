@@ -222,7 +222,16 @@ function didom_content_deleteEmptyElements(&$document){
 
             // Если текст отсутствует, можно удалить элемент
             if ( preg_match("/^(\s)*$/mu", $innerText) ){
-                $elem->remove();
+
+            	// ! сначала проверим, может там просто вложен один из графических тегов
+	            $graphical_elements = $elem->find('img, video, iframe, svg, picture, script, link, div');
+	            if (count($graphical_elements) > 0){
+		            writeLog('didom_content_deleteEmptyElements(): элемент без текста, но с графическим потомком. Оставляем');
+		            return true;
+	            }
+
+				// можно удалять
+            	$elem->remove();
                 writeLog('didom_content_deleteEmptyElements(): удалён элемент');
             }
         }
