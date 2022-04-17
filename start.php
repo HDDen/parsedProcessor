@@ -3,6 +3,7 @@ session_start();
 $_SESSION['didom_announces'] = array();
 
 set_time_limit(0);
+ini_set('memory_limit','-1');
 ini_set('error_reporting', E_ALL);
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
@@ -31,7 +32,7 @@ start(); // Запуск
 
 $parserScriptTime = microtime(true) - $parserScriptStart;
 echo 'Время выполнения: '.$parserScriptTime;
-writeLog(PHP_EOL.'Время выполнения: '.$parserScriptTime);
+writeLog(PHP_EOL.'Время выполнения: '.$parserScriptTime, false, true);
 
 function start(){
 	///////////////////////////////////////////////////////////////////////
@@ -51,13 +52,16 @@ function start(){
 	$skip_first_n = 1; // количество, а не индекс!
 	// Пропуск остальных столбцов. Уже количество. $skip_after = 10; - после 10 обработанных остальные будут отбрасываться
 	$skip_after = 0;
+
+    // Формирование ссылок для скачивания в формате aria2 либо wget
+    define('FILELINKS_ARIA2_FORMAT', true); // false = wget
 	///////////////////////////////////////////////////////////////////////
 
 
 	// Зафиксируем старт
-	writeLog(PHP_EOL.PHP_EOL.'Старт задачи');
+	writeLog(PHP_EOL.PHP_EOL.'Старт задачи', false, true);
 
-	writeLog('Входной файл: "'.$src.'"');
+	writeLog('Входной файл: "'.$src.'"', false, true);
 
 	// Кэширование.
     // Будет два вида кэша.
@@ -76,7 +80,7 @@ function start(){
     }
 
     if ($data_array){
-        writeLog("Разбор xlsx/csv - загрузили из кэша");
+        writeLog("Разбор xlsx/csv - загрузили из кэша", false, true);
         unset($cache_openedSrc);
     } else {
         if ($useInputCSV){
@@ -93,14 +97,14 @@ function start(){
             $spreadsheet = $xlsReader->load($src);
             $data_array = $spreadsheet->getSheet(0)->toArray();
         }
-        writeLog("Загрузили файл '".$src."'");
+        writeLog("Загрузили файл '".$src."'", false, true);
 
         // Запишем в кэш
         if ($cache_openedSrc_inited){
             // Запишем кэшированные данные
             $cache_openedSrc->updateCacheData($data_array);
             unset($cache_openedSrc);
-            writeLog("Разбор xlsx/csv - записали в кэш");
+            writeLog("Разбор xlsx/csv - записали в кэш", false, true);
         }
     }
 
@@ -117,7 +121,7 @@ function start(){
     if (isset($data_array_cached) && $data_array_cached){
         $data_array = $data_array_cached;
         unset($data_array_cached);
-        writeLog("Обработанные данные - загрузили из кэша");
+        writeLog("Обработанные данные - загрузили из кэша", false, true);
     } else {
         // Процессинг полученных данных выведем в отдельную функцию
         $data_array = processParsedData($data_array, $skip_first_n, $skip_after); // false / обработанный массив для обратного преобразования
@@ -125,7 +129,7 @@ function start(){
         if ($cache_processed_inited){ // если инициализация прошла успешно
             // Запишем кэшированные данные
             $cache_processed->updateCacheData($data_array);
-            writeLog("Обработанные данные - записали в кэш");
+            writeLog("Обработанные данные - записали в кэш", false, true);
             unset($cache_processed);
         }
     }
@@ -162,7 +166,7 @@ function start(){
                     $data_array[$data_array_rowIndex][$announce_img_columnIndex] = $announce_data['img']; // присвоим столбец img
                     $data_array[$data_array_rowIndex][$announce_descr_columnIndex] = $announce_data['descr']; // присвоим столбец descr
 
-                    writeLog('Нашли анонс '.$announce_data['url'].', присвоили к строке '.$data_array_rowIndex);
+                    writeLog('Нашли анонс '.$announce_data['url'].', присвоили к строке '.$data_array_rowIndex, false, true);
                 }
             }
         }
@@ -172,7 +176,7 @@ function start(){
         array_unshift($_SESSION['didom_announces'], array('url', 'img', 'descr'));
         // Сохранение
         exportResultToFile($_SESSION['didom_announces'], $dest.'_announces.xlsx', false, true);
-        writeLog('Также сохранили анонсы');
+        writeLog('Также сохранили анонсы', false, true);
     }
     session_destroy();
 
@@ -230,12 +234,12 @@ function start(){
 
 	// Запишем результат
     exportResultToFile($data_array, $dest, $useOutputCSV, $outputPhpSpreadSheet);
-    writeLog('Записали результат в "'.$dest.'"');
+    writeLog('Записали результат в "'.$dest.'"', false, true);
 
 
 
 	// Зафиксируем конец задачи
-    writeLog('Конец задачи');
+    writeLog('Конец задачи', false, true);
 }
 
 /**
@@ -266,16 +270,16 @@ function exportResultToFile($data_array, $dest, $useOutputCSV, $outputPhpSpreadS
             if (isset($exportSpreadsheet)){
                 $writer = new \PhpOffice\PhpSpreadsheet\Writer\Csv($exportSpreadsheet);
                 $writer->save($dest);
-                writeLog('Сохранили CSV через PhpSpreadSheet');
+                writeLog('Сохранили CSV через PhpSpreadSheet', false, true);
             } else {
-                writeLog('Должны писать CSV через PhpSpreadSheet, но не создали $exportSpreadsheet. Скорее всего, ничего не запишется');
+                writeLog('Должны писать CSV через PhpSpreadSheet, но не создали $exportSpreadsheet. Скорее всего, ничего не запишется', false, true);
             }
         } else {
             $output = kama_create_csv_file($data_array, $dest);
             if ($output){
-                writeLog('Сохранили CSV через kama_create_csv_file()');
+                writeLog('Сохранили CSV через kama_create_csv_file()', false, true);
             } else {
-                writeLog('Не удалось сохранить CSV через kama_create_csv_file()');
+                writeLog('Не удалось сохранить CSV через kama_create_csv_file()', false, true);
             }
         }
     } else {
@@ -286,9 +290,9 @@ function exportResultToFile($data_array, $dest, $useOutputCSV, $outputPhpSpreadS
             //Чтобы указать другую папку для сохранения.
             //Прописываем полный путь до папки и указываем имя файла
             $writer->save($dest.'.xlsx');
-            writeLog('Сохранили xlsx');
+            writeLog('Сохранили xlsx', false, true);
         } else {
-            writeLog('Должны писать в xlsx, но не создали $exportSpreadsheet. Скорее всего, ничего не запишется');
+            writeLog('Должны писать в xlsx, но не создали $exportSpreadsheet. Скорее всего, ничего не запишется', false, true);
         }
     }
 
@@ -298,11 +302,11 @@ function exportResultToFile($data_array, $dest, $useOutputCSV, $outputPhpSpreadS
 function processParsedData(&$data, $skip_first_n = 1, $skip_after = false){
 
 	// Зафиксируем вход в функцию
-	writeLog(PHP_EOL.PHP_EOL.'processParsedData(): Начали');
+	writeLog(PHP_EOL.PHP_EOL.'processParsedData(): Начали', false, true);
 
 	// Проверим на пустоту
 	if (empty($data)) {
-		writeLog('processParsedData(): Передан пустой массив $data. Уходим');
+		writeLog('processParsedData(): Передан пустой массив $data. Уходим', false, true);
 		return false;
 	}
 
@@ -325,7 +329,7 @@ function processParsedData(&$data, $skip_first_n = 1, $skip_after = false){
 		// Пропускаем заголовки. В переменной число, это количество, а не индекс
 		if ($skip_first_n){
 			if ($row_index < $skip_first_n){
-				writeLog('processParsedData(): пропускаем начальную строку');
+				writeLog('processParsedData(): пропускаем начальную строку', false, true);
 				continue;
 			}
 		}
@@ -333,7 +337,7 @@ function processParsedData(&$data, $skip_first_n = 1, $skip_after = false){
 		// Пропуск остатков - если делаем лимит на обработку только первых N
 		if ($skip_after){
 			if ($row_index >= ($skip_first_n + $skip_after) ){
-				writeLog('processParsedData(): пропускаем из-за лимита в '.$skip_after." эл-ов");
+				writeLog('processParsedData(): пропускаем из-за лимита в '.$skip_after." эл-ов", false, true);
 				continue;
 			}
 		}
@@ -362,7 +366,7 @@ function processParsedData(&$data, $skip_first_n = 1, $skip_after = false){
 		}
 	}
 
-	writeLog('processParsedData(): Прошли все операции, возвращаем результат');
+	writeLog('processParsedData(): Прошли все операции, возвращаем результат', false, true);
 
 	// Возвращаем массив
 	return $data;

@@ -204,7 +204,31 @@ function didom_content_downloadAttaches(&$document, $store_in_list_instead = fal
                     $list_file = $download_root . '/to_download.txt';
                 }
 
-				file_put_contents($list_file, $href_downloadBy.PHP_EOL, FILE_APPEND | LOCK_EX);
+				//если для закачки используем aria2, нужно генерить список вида:
+				//http://.../folder/file.jpg
+				// dir=_downloaded/folder
+				if (defined('FILELINKS_ARIA2_FORMAT') && FILELINKS_ARIA2_FORMAT){
+					writeLog('didom_content_downloadAttaches(): FILELINKS_ARIA2_FORMAT = true, генерируем список в формате aria2 (с указанием подпапки)');
+					
+					// разберём готовую ссылку для скачивания
+					$splitted_downloadHref = explode('/',parse_url($href_downloadBy, PHP_URL_PATH));
+					// проверка на пустоту у первого элемента
+					if (!$splitted_downloadHref[0]){
+						unset($splitted_downloadHref[0]);
+					}
+					// уберём имя файла
+					array_pop($splitted_downloadHref);
+					// формируем запись для файла, с начальным пробелом при указании директории
+					$add_txt_to_list = '';
+					$add_txt_to_list .= $href_downloadBy.PHP_EOL;
+					$add_txt_to_list .= ' dir='.'_downloaded'.'/'.(implode('/',$splitted_downloadHref));
+
+					writeLog('didom_content_downloadAttaches(): фрагмент с подпапкой:'.PHP_EOL.$add_txt_to_list);
+				} else {
+					$add_txt_to_list = $href_downloadBy; // просто ссылка
+				}
+
+				file_put_contents($list_file, $add_txt_to_list.PHP_EOL, FILE_APPEND | LOCK_EX);
 			}
 
 			// Заменим href у элемента
@@ -237,7 +261,7 @@ function didom_content_deleteEmptyElements(&$document){
             if ( preg_match("/^(\s)*$/mu", $innerText) ){
 
             	// ! сначала проверим, может там просто вложен один из графических тегов
-	            $graphical_elements = $elem->find('img, video, iframe, svg, picture, script, link, div');
+	            $graphical_elements = $elem->find('img, picture, video, iframe, object, svg, picture, script, link, div');
 	            if (count($graphical_elements) > 0){
 		            writeLog('didom_content_deleteEmptyElements(): элемент без текста, но с графическим потомком. Оставляем');
 		            return true;
@@ -305,7 +329,32 @@ function didom_collect_announces(&$data){
             $list_file = WORKDIR_ROOT . '/_downloadedfiles/to_download_announces.txt';
             $img_href_array = parse_url_custom($temporary['img'], 'kavraion.ru');
             $href_downloadBy = 'http://www.kavraion.ru/'.ltrim($img_href_array['path'], '/');
-            file_put_contents($list_file, $href_downloadBy.PHP_EOL, FILE_APPEND | LOCK_EX);
+
+			//если для закачки используем aria2, нужно генерить список вида:
+			//http://.../folder/file.jpg
+			// dir=_downloaded/folder
+			if (defined('FILELINKS_ARIA2_FORMAT') && FILELINKS_ARIA2_FORMAT){
+				writeLog('didom_collect_announces(): FILELINKS_ARIA2_FORMAT = true, генерируем список в формате aria2 (с указанием подпапки)');
+				
+				// разберём готовую ссылку для скачивания
+				$splitted_downloadHref = explode('/',parse_url($href_downloadBy, PHP_URL_PATH));
+				// проверка на пустоту у первого элемента
+				if (!$splitted_downloadHref[0]){
+					unset($splitted_downloadHref[0]);
+				}
+				// уберём имя файла
+				array_pop($splitted_downloadHref);
+				// формируем запись для файла, с начальным пробелом при указании директории
+				$add_txt_to_list = '';
+				$add_txt_to_list .= $href_downloadBy.PHP_EOL;
+				$add_txt_to_list .= ' dir='.'_downloaded'.'/'.(implode('/',$splitted_downloadHref));
+
+				writeLog('didom_collect_announces(): фрагмент с подпапкой:'.PHP_EOL.$add_txt_to_list);
+			} else {
+				$add_txt_to_list = $href_downloadBy; // просто ссылка
+			}
+
+            file_put_contents($list_file, $add_txt_to_list.PHP_EOL, FILE_APPEND | LOCK_EX);
             // Теперь модифицировать путь к ней - сделать относительный от корня, с нашей подпапкой
             $img_path_info = parse_url_custom($temporary['img'], 'kavraion.ru');
             if ($img_path_info['is_internal']){
@@ -322,7 +371,7 @@ function didom_collect_announces(&$data){
         // зафиксируем ссылку на новость - будет id
         $url = $element->first('.newsheader a');
         if (!$url) {
-            writeLog('didom_collect_announces(): не удаётся найти url новости!');
+            writeLog('didom_collect_announces(): не удаётся найти url новости!', false, true);
             continue;
         }
         $url = $url->getAttribute('href');

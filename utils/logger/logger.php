@@ -47,7 +47,7 @@ $date = date('d/m/Y H:i:s', time());
 }*/
 
 if (!function_exists('writeLog')){
-    function writeLog($logdata = '', $newstarted = false){
+    function writeLog($logdata = '', $newstarted = false, $try_echo = false){
 	    // Логи. Замена echo
 	    $logfile = dirname(__FILE__).'/log.txt';
 
@@ -104,6 +104,13 @@ if (!function_exists('writeLog')){
 
         $date = date('d/m/Y H:i:s', time());
         file_put_contents($logfile, $date.': '.$logdata.PHP_EOL, FILE_APPEND | LOCK_EX);
+
+        // вывод на экран
+        if ($try_echo){
+            echo $logdata.'<br />';
+            flush();
+            usleep(1);
+        }
 
     }
 }
